@@ -9,6 +9,7 @@
         canvas { background: black; display: block; margin: auto; }
         .controls { display: flex; justify-content: center; margin-top: 10px; }
         .btn { width: 60px; height: 60px; font-size: 24px; margin: 5px; background: gray; color: white; border: none; border-radius: 10px; }
+        #restart { display: none; margin-top: 20px; font-size: 18px; padding: 10px; }
     </style>
 </head>
 <body>
@@ -24,15 +25,27 @@
         <button class="btn" onclick="setDirection('RIGHT')">➡️</button>
     </div>
 
+    <button id="restart" onclick="restartGame()">Начать заново 🔄</button>
+
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        let snake = [{ x: 200, y: 200 }];
-        let direction = "RIGHT";
-        let food = { x: Math.floor(Math.random() * 20) * 20, y: Math.floor(Math.random() * 20) * 20 };
+        let snake, direction, food, gameInterval, gameOver;
+
+        function initGame() {
+            snake = [{ x: 200, y: 200 }];
+            direction = "RIGHT";
+            food = { x: Math.floor(Math.random() * 20) * 20, y: Math.floor(Math.random() * 20) * 20 };
+            gameOver = false;
+            document.getElementById("restart").style.display = "none";
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(draw, 200); // Медленнее (200 мс)
+        }
 
         function draw() {
+            if (gameOver) return;
+
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -54,21 +67,13 @@
                 snake.pop();
             }
 
-            snake.unshift(head);
-
-            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
-                alert("Ты проиграл! Нажми OK, чтобы начать заново.");
-                snake = [{ x: 200, y: 200 }];
-                direction = "RIGHT";
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || 
+                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                endGame();
+                return;
             }
-        }
 
-        function changeDirection(event) {
-            const key = event.keyCode;
-            if (key === 37 && direction !== "RIGHT") direction = "LEFT";
-            if (key === 38 && direction !== "DOWN") direction = "UP";
-            if (key === 39 && direction !== "LEFT") direction = "RIGHT";
-            if (key === 40 && direction !== "UP") direction = "DOWN";
+            snake.unshift(head);
         }
 
         function setDirection(newDirection) {
@@ -78,9 +83,26 @@
             if (newDirection === "DOWN" && direction !== "UP") direction = "DOWN";
         }
 
+        function changeDirection(event) {
+            const key = event.keyCode;
+            if (key === 37) setDirection("LEFT");
+            if (key === 38) setDirection("UP");
+            if (key === 39) setDirection("RIGHT");
+            if (key === 40) setDirection("DOWN");
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            gameOver = true;
+            document.getElementById("restart").style.display = "block";
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
         document.addEventListener("keydown", changeDirection);
-        setInterval(draw, 150); // Уменьшил скорость змейки (150 мс)
+        initGame();
     </script>
 </body>
 </html>
-
