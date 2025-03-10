@@ -6,7 +6,7 @@
     <title>Змейка в Telegram</title>
     <style>
         body { text-align: center; background-color: #222; color: white; }
-        canvas { background: black; display: block; margin: auto; }
+        canvas { background: black; display: block; margin: auto; border-radius: 10px; }
         .controls { display: flex; justify-content: center; margin-top: 10px; }
         .btn { width: 60px; height: 60px; font-size: 24px; margin: 5px; background: gray; color: white; border: none; border-radius: 10px; }
         #restart { display: none; margin-top: 20px; font-size: 18px; padding: 10px; }
@@ -31,56 +31,83 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        let snake, direction, food, gameInterval, gameOver;
+        let snake, direction, food, nextDirection, gameOver;
+        let speed = 2; // Скорость (пиксели за кадр)
+        let segmentSize = 20; // Размер сегмента
 
         function initGame() {
             snake = [{ x: 200, y: 200 }];
             direction = "RIGHT";
-            food = { x: Math.floor(Math.random() * 20) * 20, y: Math.floor(Math.random() * 20) * 20 };
+            nextDirection = "RIGHT";
+            food = randomFood();
             gameOver = false;
             document.getElementById("restart").style.display = "none";
-            if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(draw, 200); // Медленнее (200 мс)
+            requestAnimationFrame(update);
         }
 
-        function draw() {
+        function randomFood() {
+            return { 
+                x: Math.floor(Math.random() * (canvas.width / segmentSize)) * segmentSize, 
+                y: Math.floor(Math.random() * (canvas.height / segmentSize)) * segmentSize 
+            };
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = "lime";
+            snake.forEach((segment, index) => {
+                ctx.beginPath();
+                ctx.arc(segment.x + segmentSize / 2, segment.y + segmentSize / 2, segmentSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(food.x + segmentSize / 2, food.y + segmentSize / 2, segmentSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function update() {
             if (gameOver) return;
 
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "red";
-            ctx.fillRect(food.x, food.y, 20, 20);
-
-            ctx.fillStyle = "lime";
-            snake.forEach(segment => ctx.fillRect(segment.x, segment.y, 20, 20));
+            drawFood();
+            drawSnake();
 
             let head = { ...snake[0] };
-            if (direction === "UP") head.y -= 20;
-            if (direction === "DOWN") head.y += 20;
-            if (direction === "LEFT") head.x -= 20;
-            if (direction === "RIGHT") head.x += 20;
 
-            if (head.x === food.x && head.y === food.y) {
-                food = { x: Math.floor(Math.random() * 20) * 20, y: Math.floor(Math.random() * 20) * 20 };
+            if (direction === "UP") head.y -= speed;
+            if (direction === "DOWN") head.y += speed;
+            if (direction === "LEFT") head.x -= speed;
+            if (direction === "RIGHT") head.x += speed;
+
+            if (Math.abs(head.x - food.x) < segmentSize && Math.abs(head.y - food.y) < segmentSize) {
+                food = randomFood();
             } else {
                 snake.pop();
             }
 
-            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || 
-                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+            if (head.x < 0 || head.x > canvas.width - segmentSize || head.y < 0 || head.y > canvas.height - segmentSize) {
                 endGame();
                 return;
             }
 
             snake.unshift(head);
+
+            if (snake.length > 1 && Math.abs(head.x - snake[1].x) < speed && Math.abs(head.y - snake[1].y) < speed) {
+                direction = nextDirection;
+            }
+
+            requestAnimationFrame(update);
         }
 
         function setDirection(newDirection) {
-            if (newDirection === "LEFT" && direction !== "RIGHT") direction = "LEFT";
-            if (newDirection === "UP" && direction !== "DOWN") direction = "UP";
-            if (newDirection === "RIGHT" && direction !== "LEFT") direction = "RIGHT";
-            if (newDirection === "DOWN" && direction !== "UP") direction = "DOWN";
+            if (newDirection === "LEFT" && direction !== "RIGHT") nextDirection = "LEFT";
+            if (newDirection === "UP" && direction !== "DOWN") nextDirection = "UP";
+            if (newDirection === "RIGHT" && direction !== "LEFT") nextDirection = "RIGHT";
+            if (newDirection === "DOWN" && direction !== "UP") nextDirection = "DOWN";
         }
 
         function changeDirection(event) {
@@ -92,7 +119,6 @@
         }
 
         function endGame() {
-            clearInterval(gameInterval);
             gameOver = true;
             document.getElementById("restart").style.display = "block";
         }
